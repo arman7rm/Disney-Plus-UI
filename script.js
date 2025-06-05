@@ -114,14 +114,12 @@ function updateSelection(newRowIndex, newTileIndex) {
   if (newTile) {
     newTile.classList.add("selected");
 
-    // Scroll tile into view horizontally
     newTile.scrollIntoView({
       behavior: "smooth",
       inline: "center",
       block: "nearest",
     });
 
-    // Scroll row title into view vertically
     const rowTitle = row.querySelector(".row-title");
     if (rowTitle) {
       rowTitle.scrollIntoView({
@@ -130,7 +128,6 @@ function updateSelection(newRowIndex, newTileIndex) {
       });
     }
 
-    // Scroll to top if it's the first row
     if (newRowIndex === 0) {
       document.documentElement.scrollTo({
         top: 0,

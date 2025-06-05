@@ -10,7 +10,7 @@
     background-color: var(--black);
     margin: 0;
     font-family: sans-serif;
-    overflow: hidden; /* Prevent full-page scroll */
+    overflow: hidden; 
   }
   
   .overhang {
@@ -33,10 +33,10 @@
   
   .collection-group {
     color: white;
+    padding-top: 2rem;
     padding-left: 2rem;
   }
   
-  /* Grid container no longer absolutely positioned */
   .grid-container {
     height: 100vh;
     overflow-y: auto;
@@ -46,7 +46,6 @@
     padding: 1rem 5rem;
   }
   
-  /* Each row and title */
   .row {
     display: flex;
     flex-direction: column;
@@ -57,7 +56,6 @@
     margin-bottom: 1rem;
   }
   
-  /* Horizontal scroll for tiles */
   .row-children {
     display: flex;
     flex-direction: row;
@@ -75,7 +73,6 @@
     transition: transform 0.2s, border 0.2s, margin 0.2s;
   }
   
-  /* Selected tile */
   .selected {
     border: 2px solid white;
     transform: scale(1.15);
