@@ -1,0 +1,85 @@
+* {
+    box-sizing: border-box;
+  }
+  
+  :root {
+    --black: #000000;
+  }
+  
+  body {
+    background-color: var(--black);
+    margin: 0;
+    font-family: sans-serif;
+    overflow: hidden; /* Prevent full-page scroll */
+  }
+  
+  .overhang {
+    width: 100%;
+    background-color: var(--black);
+    z-index: 100;
+    padding: 1rem 5rem;
+    display: flex;
+    align-items: center;
+  }
+  
+  .container-row {
+    display: flex;
+    flex-direction: row;
+  }
+  
+  .logo {
+    width: 200px;
+  }
+  
+  .collection-group {
+    color: white;
+    padding-left: 2rem;
+  }
+  
+  /* Grid container no longer absolutely positioned */
+  .grid-container {
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    padding: 1rem 5rem;
+  }
+  
+  /* Each row and title */
+  .row {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .row-title {
+    color: white;
+    margin-bottom: 1rem;
+  }
+  
+  /* Horizontal scroll for tiles */
+  .row-children {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    align-items: center;
+    height: 400px;
+  }
+  
+  .tile {
+    width: 450px;
+    height: 252px;
+    margin-right: 15px;
+    transform-origin: center center;
+    transition: transform 0.2s, border 0.2s, margin 0.2s;
+  }
+  
+  /* Selected tile */
+  .selected {
+    border: 2px solid white;
+    transform: scale(1.15);
+    z-index: 1;
+    margin: 0 4rem;
+  }
+  
