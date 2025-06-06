@@ -2,12 +2,15 @@ const url = "https://cd-static.bamgrid.com/dp-117731241344/home.json";
 var containers = [];
 var rows = [];
 var queue = [];
+var renderedRows = new Set();
 
 async function getData(url) {
   try {
     const response = await fetch(url);
-    const responseJson = await response.json();
-    return responseJson;
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
+    }
+    return await response.json();
   } catch (err) {
     console.log("failed to fetch data", err);
   }
@@ -15,6 +18,11 @@ async function getData(url) {
 
 function setContainers(responseJson) {
   containers = responseJson?.data?.StandardCollection?.containers;
+  if (!containers) {
+    console.error(
+      "Failed to extract containers from response JSON: 'StandardCollection.containers' is undefined or null."
+    );
+  }
 }
 
 function setRows() {
@@ -23,7 +31,10 @@ function setRows() {
     if (items) {
       rows.push(createRow(items, container.set));
     } else {
-      queue.push(container?.set?.refId);
+      queue.push({
+        id: container?.set?.refId,
+        title: container.set.text.title.full.set.default.content,
+      });
     }
   });
 }
@@ -94,6 +105,7 @@ function renderRows(startIndex) {
     rowElement.appendChild(rowChildren);
     rowIndexMap[i] = 0;
     document.querySelector(".grid-container").appendChild(rowElement);
+    renderedRows.add(row.title);
   }
 }
 
@@ -127,6 +139,7 @@ function updateSelection(newRowIndex, newTileIndex) {
 
     const rowTitle = row.querySelector(".row-title");
     if (rowTitle) {
+      console.log("scrolling to row");
       rowTitle.scrollIntoView({
         behavior: "smooth",
         block: "center",
@@ -185,12 +198,25 @@ async function retrieveMoreRows() {
   var prevRowLength = rows.length;
   while (queue.length > 0 && i < 2) {
     i++;
-    let nextRowRefId = queue.shift();
-    let baseUrl = `https://cd-static.bamgrid.com/dp-117731241344/sets/${nextRowRefId}.json`;
+    let { id, title } = queue.shift();
+    let baseUrl = `https://cd-static.bamgrid.com/dp-117731241344/sets/${id}.json`;
     const responseJson = await getData(baseUrl);
-    let set = responseJson?.data?.CuratedSet;
-    if (set?.items) {
-      rows.push(createRow(set.items, set));
+    let data = responseJson?.data;
+    if (data.CuratedSet) {
+      var row = createRow(data.CuratedSet.items, data.CuratedSet);
+      if (renderedRows.has(row.title)) continue;
+      rows.push(row);
+    } else if (data.TrendingSet) {
+      var row = createRow(data.TrendingSet.items, data.TrendingSet);
+      if (renderedRows.has(row.title)) continue;
+      rows.push(row);
+    } else if (data.PersonalizedCuratedSet) {
+      var row = createRow(
+        data.PersonalizedCuratedSet.items,
+        data.PersonalizedCuratedSet
+      );
+      if (renderedRows.has(row.title)) continue;
+      rows.push(row);
     }
   }
   renderRows(prevRowLength);
