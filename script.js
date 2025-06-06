@@ -1,4 +1,7 @@
 const url = "https://cd-static.bamgrid.com/dp-117731241344/home.json";
+var containers = [];
+var rows = [];
+var queue = [];
 
 async function getData(url) {
   try {
@@ -18,16 +21,22 @@ function setRows() {
   containers.forEach((container) => {
     var items = container?.set?.items;
     if (items) {
-      var row = {};
-      row.title = container?.set?.text?.title?.full?.set?.default?.content;
-      row.children = [];
-      items.forEach((item) => {
-        var itemData = GetItemData(item);
-        row.children.push(itemData);
-      });
-      rows.push(row);
+      rows.push(createRow(items, container.set));
+    } else {
+      queue.push(container?.set?.refId);
     }
   });
+}
+
+function createRow(items, set) {
+  var row = {};
+  row.title = set?.text?.title?.full?.set?.default?.content;
+  row.children = [];
+  items.forEach((item) => {
+    var itemData = GetItemData(item);
+    row.children.push(itemData);
+  });
+  return row;
 }
 
 function GetItemData(item) {
@@ -61,12 +70,9 @@ function getImageUrl(data, size) {
   }
 }
 
-var containers = [];
-var rows = [];
-
-function renderRows() {
-  var i = 0;
-  rows.forEach((row) => {
+function renderRows(startIndex) {
+  for (let i = startIndex; i < rows.length; i++) {
+    var row = rows[i];
     const rowElement = document.createElement("div");
     rowElement.classList.add("row");
 
@@ -87,9 +93,8 @@ function renderRows() {
     rowElement.appendChild(rowTitle);
     rowElement.appendChild(rowChildren);
     rowIndexMap[i] = 0;
-    i++;
     document.querySelector(".grid-container").appendChild(rowElement);
-  });
+  }
 }
 
 let currentRowIndex = 0;
@@ -162,6 +167,9 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "ArrowDown") {
     if (currentRowIndex < rows.length - 1) {
       const newIndex = rowIndexMap[currentRowIndex + 1];
+      if (Math.abs(rows.length - currentRowIndex - 1) <= 2) {
+        retrieveMoreRows();
+      }
       updateSelection(currentRowIndex + 1, newIndex);
     }
   } else if (event.key === "ArrowUp") {
@@ -172,11 +180,27 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+async function retrieveMoreRows() {
+  let i = 0;
+  var prevRowLength = rows.length;
+  while (queue.length > 0 && i < 2) {
+    i++;
+    let nextRowRefId = queue.shift();
+    let baseUrl = `https://cd-static.bamgrid.com/dp-117731241344/sets/${nextRowRefId}.json`;
+    const responseJson = await getData(baseUrl);
+    let set = responseJson?.data?.CuratedSet;
+    if (set?.items) {
+      rows.push(createRow(set.items, set));
+    }
+  }
+  renderRows(prevRowLength);
+}
+
 async function main() {
   const data = await getData(url);
   setContainers(data);
   setRows();
-  renderRows();
+  renderRows(0);
   updateSelection(0, 0);
 }
 main();
