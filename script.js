@@ -1,75 +1,31 @@
+class Queue {
+  constructor() {
+    this.items = [];
+  }
+
+  enqueue(item) {
+    this.items.push(item);
+  }
+
+  dequeue() {
+    return this.items.shift();
+  }
+
+  get length() {
+    return this.items.length;
+  }
+}
+//Stores refIds for rows to be rendered later
+const nextRowQueue = new Queue();
+//Stores rowIds that will be rendered when renderRows is invoked
+const renderQueue = new Queue();
+//Stores rows
+const rowMap = new Map();
+const renderedRows = new Set();
+let currentRowId = 0;
 const url = "https://cd-static.bamgrid.com/dp-117731241344/home.json";
-var containers = [];
-var rows = [];
-var queue = [];
-var renderedRows = new Set();
 
-async function getData(url) {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status} - ${response.statusText}`);
-    }
-    return await response.json();
-  } catch (err) {
-    console.log("failed to fetch data", err);
-  }
-}
-
-function setContainers(responseJson) {
-  containers = responseJson?.data?.StandardCollection?.containers;
-  if (!containers) {
-    console.error(
-      "Failed to extract containers from response JSON: 'StandardCollection.containers' is undefined or null."
-    );
-  }
-}
-
-function setRows() {
-  containers.forEach((container) => {
-    var items = container?.set?.items;
-    if (items) {
-      rows.push(createRow(items, container.set));
-    } else {
-      queue.push({
-        id: container?.set?.refId,
-        title: container.set.text.title.full.set.default.content,
-      });
-    }
-  });
-}
-
-function createRow(items, set) {
-  var row = {};
-  row.title = set?.text?.title?.full?.set?.default?.content;
-  row.children = [];
-  items.forEach((item) => {
-    var itemData = GetItemData(item);
-    row.children.push(itemData);
-  });
-  return row;
-}
-
-function GetItemData(item) {
-  var data = {
-    title: "",
-    tile: "",
-    contentId: "",
-  };
-
-  data.full = item?.text?.title?.full;
-  if (data.full) {
-    for (let key in data.full) {
-      data.title = data.full[key]?.default?.content;
-    }
-  }
-
-  data.tile = getImageUrl(item, "1.78");
-  data.contentId = item.contentId;
-  return data;
-}
-
-function getImageUrl(data, size) {
+function getImageUrl(title, data, size) {
   const aspectRatio = data?.image?.tile[size];
   if (aspectRatio) {
     for (let key in aspectRatio) {
@@ -77,44 +33,76 @@ function getImageUrl(data, size) {
       if (imageUrl) return imageUrl;
     }
   } else {
-    console.log("Error: No Image found for size ", size);
+    console.warn(`${title} No Image found for size`, size);
   }
 }
 
-function renderRows(startIndex) {
-  for (let i = startIndex; i < rows.length; i++) {
-    var row = rows[i];
-    const rowElement = document.createElement("div");
-    rowElement.classList.add("row");
+function getItemData(item) {
+  const data = {};
+  data.full = item?.text?.title?.full;
+  if (data.full) {
+    for (let key in data.full) {
+      data.title = data.full[key]?.default?.content;
+    }
+  }
+  data.imageUrl = getImageUrl(data.title, item, "1.78");
+  data.contentId = item.contentId;
+  data.videoArt = item.videoArt?.[0]?.mediaMetadata?.urls?.[0]?.url;
+  return data;
+}
 
-    const rowTitle = document.createElement("h2");
-    rowTitle.textContent = row.title;
-    rowTitle.classList.add("row-title");
+function createRow(set) {
+  const row = {};
+  row.id = rowMap.size;
+  row.title = set?.text?.title?.full?.set?.default?.content;
+  row.tileIndex = 0;
+  row.children = [];
+  set.items.forEach((item) => {
+    row.children.push(getItemData(item));
+  });
+  return row;
+}
 
-    const rowChildren = document.createElement("div");
-    rowChildren.classList.add("row-children");
-
-    row.children.forEach((item) => {
-      const img = document.createElement("img");
-      img.src = item.tile;
-      img.classList.add("tile");
-      rowChildren.appendChild(img);
+async function fetchData(url) {
+  return fetch(url)
+    .then((response) => response.json())
+    .catch((err) => {
+      console.error("Failed to fetch data:", err);
     });
+}
 
-    rowElement.appendChild(rowTitle);
-    rowElement.appendChild(rowChildren);
-    rowIndexMap[i] = 0;
-    document.querySelector(".grid-container").appendChild(rowElement);
-    renderedRows.add(row.title);
+async function retrieveMoreRows() {
+  let i = 0;
+  while (nextRowQueue.length > 0 && i < 2) {
+    i++;
+    const refId = nextRowQueue.dequeue();
+    const baseUrl = `https://cd-static.bamgrid.com/dp-117731241344/sets/${refId}.json`;
+    fetchData(baseUrl)
+      .then((responseJson) => {
+        let data = responseJson?.data;
+        var row;
+        if (data.CuratedSet) {
+          row = createRow(data.CuratedSet);
+        } else if (data.TrendingSet) {
+          row = createRow(data.TrendingSet);
+        } else if (data.PersonalizedCuratedSet) {
+          row = createRow(data.PersonalizedCuratedSet);
+        }
+        if (!renderedRows.has(row.title)) {
+          rowMap.set(row.id, row);
+          renderQueue.enqueue(row.id);
+        }else{
+          console.warn(`Duplicate row recieved: \nrefId: ${refId}\nTitle: ${row.title}`)
+        }
+      })
+      .then(() => {
+        renderRows();
+      });
   }
 }
 
-let currentRowIndex = 0;
-let currentTileIndex = 0;
-
-var rowIndexMap = new Map();
-
-function updateSelection(newRowIndex, newTileIndex) {
+function updateSelection(newRowIndex) {
+  const rowObject = rowMap.get(newRowIndex);
   const oldSelected = document.querySelector(".tile.selected");
   if (oldSelected) {
     oldSelected.classList.remove("selected");
@@ -126,11 +114,10 @@ function updateSelection(newRowIndex, newTileIndex) {
 
   const rowChildren = row.querySelector(".row-children");
   const tiles = rowChildren.querySelectorAll(".tile");
-  const newTile = tiles[newTileIndex];
+  const newTile = tiles[rowObject.tileIndex];
 
   if (newTile) {
     newTile.classList.add("selected");
-
     newTile.scrollIntoView({
       behavior: "smooth",
       inline: "center",
@@ -139,7 +126,6 @@ function updateSelection(newRowIndex, newTileIndex) {
 
     const rowTitle = row.querySelector(".row-title");
     if (rowTitle) {
-      console.log("scrolling to row");
       rowTitle.scrollIntoView({
         behavior: "smooth",
         block: "center",
@@ -153,80 +139,98 @@ function updateSelection(newRowIndex, newTileIndex) {
       });
     }
 
-    currentRowIndex = newRowIndex;
-    currentTileIndex = newTileIndex;
+    currentRowId = newRowIndex;
   }
 }
 
 document.addEventListener("keydown", (event) => {
   const rows = document.querySelectorAll(".row-children");
-  const currentRow = rows[currentRowIndex];
-  if (!currentRow) return;
-
-  const tiles = currentRow.querySelectorAll(".tile");
+  const currentRowElement = rows[currentRowId];
+  const currentRow = rowMap.get(currentRowId);
+  if (!currentRowElement) return;
+  const tiles = currentRowElement.querySelectorAll(".tile");
 
   if (event.key === "ArrowRight") {
-    if (currentTileIndex < tiles.length - 1) {
-      rowIndexMap[currentRowIndex]++;
-      updateSelection(currentRowIndex, currentTileIndex + 1);
+    if (currentRow.tileIndex < tiles.length - 1) {
+      currentRow.tileIndex++;
+      updateSelection(currentRowId);
     }
   } else if (event.key === "ArrowLeft") {
-    if (currentTileIndex > 0) {
-      const prevColIndex = rowIndexMap[currentRowIndex];
-      rowIndexMap[currentRowIndex] =
-        prevColIndex > 0 ? prevColIndex - 1 : prevColIndex;
-      updateSelection(currentRowIndex, currentTileIndex - 1);
+    if (currentRow.tileIndex > 0) {
+      currentRow.tileIndex--;
+      updateSelection(currentRowId);
     }
   } else if (event.key === "ArrowDown") {
-    if (currentRowIndex < rows.length - 1) {
-      const newIndex = rowIndexMap[currentRowIndex + 1];
-      if (Math.abs(rows.length - currentRowIndex - 1) <= 2) {
+    if (currentRowId < rows.length - 1) {
+      if (Math.abs(rows.length - currentRowId - 1) <= 2) {
         retrieveMoreRows();
       }
-      updateSelection(currentRowIndex + 1, newIndex);
+      updateSelection(currentRowId + 1);
     }
   } else if (event.key === "ArrowUp") {
-    if (currentRowIndex > 0) {
-      const newIndex = rowIndexMap[currentRowIndex - 1];
-      updateSelection(currentRowIndex - 1, newIndex);
+    if (currentRowId > 0) {
+      updateSelection(currentRowId - 1);
     }
   }
 });
 
-async function retrieveMoreRows() {
-  let i = 0;
-  var prevRowLength = rows.length;
-  while (queue.length > 0 && i < 2) {
-    i++;
-    let { id, title } = queue.shift();
-    let baseUrl = `https://cd-static.bamgrid.com/dp-117731241344/sets/${id}.json`;
-    const responseJson = await getData(baseUrl);
-    let data = responseJson?.data;
-    if (data.CuratedSet) {
-      var row = createRow(data.CuratedSet.items, data.CuratedSet);
-      if (renderedRows.has(row.title)) continue;
-      rows.push(row);
-    } else if (data.TrendingSet) {
-      var row = createRow(data.TrendingSet.items, data.TrendingSet);
-      if (renderedRows.has(row.title)) continue;
-      rows.push(row);
-    } else if (data.PersonalizedCuratedSet) {
-      var row = createRow(
-        data.PersonalizedCuratedSet.items,
-        data.PersonalizedCuratedSet
-      );
-      if (renderedRows.has(row.title)) continue;
-      rows.push(row);
-    }
+function renderRows() {
+  while (renderQueue.length > 0) {
+    const row = rowMap.get(renderQueue.dequeue());
+    const rowElement = document.createElement("div");
+    rowElement.classList.add("row");
+
+    const rowTitle = document.createElement("h2");
+    rowTitle.textContent = row.title;
+    rowTitle.classList.add("row-title");
+
+    const rowChildren = document.createElement("div");
+    rowChildren.classList.add("row-children");
+
+    row.children.forEach((item) => {
+      const img = document.createElement("img");
+      img.src = item.imageUrl;
+      img.classList.add("tile");
+      rowChildren.appendChild(img);
+      img.onerror = () => {
+        console.warn(`Image failed to load for ${item.title}:`, img.src);
+        rowChildren.removeChild(img);
+      };
+    });
+
+    rowElement.appendChild(rowTitle);
+    rowElement.appendChild(rowChildren);
+    document.querySelector(".grid-container").appendChild(rowElement);
+    renderedRows.add(row.title);
   }
-  renderRows(prevRowLength);
 }
 
-async function main() {
-  const data = await getData(url);
-  setContainers(data);
-  setRows();
-  renderRows(0);
-  updateSelection(0, 0);
+function initializeRowMap() {
+  return fetchData(url).then((response) => {
+    const containers = response?.data?.StandardCollection?.containers;
+    if (!containers) {
+      console.error(
+        "Error: Data could not be parsed. Invalid response structure."
+      );
+      return;
+    }
+    containers.forEach((container) => {
+      if (container.set?.items) {
+        const row = createRow(container.set);
+        rowMap.set(row.id, row);
+        renderQueue.enqueue(row.id);
+      } else {
+        nextRowQueue.enqueue(container?.set?.refId);
+      }
+    });
+  });
 }
+
+function main() {
+  initializeRowMap().then(() => {
+    renderRows();
+    updateSelection(0);
+  });
+}
+
 main();
