@@ -91,8 +91,10 @@ async function retrieveMoreRows() {
         if (!renderedRows.has(row.title)) {
           rowMap.set(row.id, row);
           renderQueue.enqueue(row.id);
-        }else{
-          console.warn(`Duplicate row recieved: \nrefId: ${refId}\nTitle: ${row.title}`)
+        } else {
+          console.warn(
+            `Duplicate row recieved: \nrefId: ${refId}\nTitle: ${row.title}`
+          );
         }
       })
       .then(() => {
@@ -107,9 +109,9 @@ function updateSelection(newRowIndex) {
   if (oldSelected) {
     oldSelected.classList.remove("selected");
   }
-
   const rowElements = document.querySelectorAll(".row");
   const row = rowElements[newRowIndex];
+
   if (!row) return;
 
   const rowChildren = row.querySelector(".row-children");
@@ -141,6 +143,10 @@ function updateSelection(newRowIndex) {
 
     currentRowId = newRowIndex;
   }
+
+  const selectedTile = document.querySelector(".tile.selected");
+  const title = selectedTile ? selectedTile.alt : null;
+  row.querySelector(".item-title").textContent = ":  " + title;
 }
 
 document.addEventListener("keydown", (event) => {
@@ -165,10 +171,12 @@ document.addEventListener("keydown", (event) => {
       if (Math.abs(rows.length - currentRowId - 1) <= 2) {
         retrieveMoreRows();
       }
+      document.querySelectorAll('.row')[currentRowId].querySelector('.item-title').textContent = '';
       updateSelection(currentRowId + 1);
     }
   } else if (event.key === "ArrowUp") {
     if (currentRowId > 0) {
+      document.querySelectorAll('.row')[currentRowId].querySelector('.item-title').textContent = '';
       updateSelection(currentRowId - 1);
     }
   }
@@ -180,9 +188,18 @@ function renderRows() {
     const rowElement = document.createElement("div");
     rowElement.classList.add("row");
 
+    const rowHeading = document.createElement("div");
+    rowHeading.classList.add("row-heading");
+
     const rowTitle = document.createElement("h2");
     rowTitle.textContent = row.title;
     rowTitle.classList.add("row-title");
+
+    const itemTitle = document.createElement("h2");
+    itemTitle.classList.add("item-title");
+
+    rowHeading.appendChild(rowTitle);
+    rowHeading.appendChild(itemTitle);
 
     const rowChildren = document.createElement("div");
     rowChildren.classList.add("row-children");
@@ -191,6 +208,7 @@ function renderRows() {
       const img = document.createElement("img");
       img.src = item.imageUrl;
       img.classList.add("tile");
+      img.alt = item.title;
       rowChildren.appendChild(img);
       img.onerror = () => {
         console.warn(`Image failed to load for ${item.title}:`, img.src);
@@ -198,7 +216,7 @@ function renderRows() {
       };
     });
 
-    rowElement.appendChild(rowTitle);
+    rowElement.appendChild(rowHeading);
     rowElement.appendChild(rowChildren);
     document.querySelector(".grid-container").appendChild(rowElement);
     renderedRows.add(row.title);
