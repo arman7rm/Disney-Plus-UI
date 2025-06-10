@@ -54,7 +54,6 @@ export function getNestedProperty(obj, path, defaultValue = null) {
       typeof current !== "object" ||
       !Object.prototype.hasOwnProperty.call(current, part)
     ) {
-        console.log(current, part);
       return defaultValue;
     }
     current = current[part];

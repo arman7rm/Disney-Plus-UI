@@ -72,15 +72,15 @@ class DataService {
 
   /**
    * Retrieves the appropriate image URL for an item based on its size.
-   * @param {string} title 
-   * @param {Object} data 
-   * @param {string} size 
-   * @returns {string|null} 
+   * @param {string} title
+   * @param {Object} data
+   * @param {string} size
+   * @returns {string|null}
    */
   getImageUrl(title, data, size) {
     const images = data?.image?.tile?.[size];
     if (!images) {
-      console.warn(`${title} No Image found for size`, size);
+      console.warn(`${title} - No image found for size: ${size}`);
       return null;
     }
 
@@ -93,7 +93,7 @@ class DataService {
   /**
    * Extracts relevant information from a content item to be displayed as a tile.
    * @param {Object} item - The content item.
-   * @returns {Tile} 
+   * @returns {Tile}
    */
   getItemData(item) {
     const data = {};
@@ -102,12 +102,16 @@ class DataService {
     if (data.full) {
       for (let key in data.full) {
         data.title = data.full[key]?.default?.content;
+        break;
       }
     }
 
     data.imageUrl = this.getImageUrl(data.title, item, IMAGE_RATIO_1_78);
     data.contentId = item.contentId;
     data.videoArt = item.videoArt?.[0]?.mediaMetadata?.urls?.[0]?.url;
+    if (!data.videoArt) {
+      console.warn(`Preview Video missing for ${data.title}`);
+    }
 
     return data;
   }
@@ -149,9 +153,9 @@ class DataService {
 
     if (row) {
       return row;
-    } else {
-      console.warn(`Row not found: \nrefId: ${refId}`);
     }
+    console.warn(`Row not found: \nrefId: ${refId}`);
+    return undefined;
   }
 }
 
