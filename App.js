@@ -10,6 +10,7 @@ import {
   CSS_CLASSES,
   DATA_PATHS,
 } from "./constants.js";
+import { dataService } from "./dataservice.js";
 
 class App {
   static previewTimeout = null;
@@ -28,13 +29,10 @@ class App {
     );
     this.body = document.body;
 
-    // Bind event handlers to the class instance
+    // Bind event handler
     this.handleKeyDown = this.handleKeyDown.bind(this);
   }
 
-  /**
-   * Initializes the application: fetches initial data, renders, and sets up events.
-   */
   async init() {
     this.addEventListeners();
     await this.initializeRowData();
@@ -82,28 +80,37 @@ class App {
     return row;
   }
 
-  initializeRowData() {
-    return safeFetch(API_BASE_URL + HOME_API_PATH).then((response) => {
-      const containers = response?.data?.StandardCollection?.containers;
-
-      if (!containers) {
-        console.error(
-          "Error: Data could not be parsed. Invalid response structure."
-        );
-
-        return;
-      }
-
-      containers.forEach((container) => {
-        if (container.set?.items) {
-          const row = this.createRow(container.set);
-          this.rowMap.set(row.id, row);
-          this.renderQueue.enqueue(row.id);
-        } else {
-          this.nextRowQueue.enqueue(container?.set?.refId);
-        }
-      });
+  async initializeRowData() {
+    const { initialRows, nextRowRefIds } = await dataService.fetchInitialRows();
+    initialRows.forEach((row) => {
+      this.rowMap.set(row.id, row);
+      this.renderQueue.enqueue(row.id);
     });
+    nextRowRefIds.forEach((refId) => {
+      this.nextRowQueue.enqueue(refId);
+    });
+    // return safeFetch(API_BASE_URL + HOME_API_PATH).then((response) => {
+    //   const containers = response?.data?.StandardCollection?.containers;
+
+    //   if (!containers) {
+    //     console.error(
+    //       "Error: Data could not be parsed. Invalid response structure."
+    //     );
+
+    //     return;
+    //   }
+
+    //   containers.forEach((container) => {
+    //     if (container.set?.items) {
+    //       const row = this.createRow(container.set);
+    //       console.log(row.id);
+    //       this.rowMap.set(row.id, row);
+    //       this.renderQueue.enqueue(row.id);
+    //     } else {
+    //       this.nextRowQueue.enqueue(container?.set?.refId);
+    //     }
+    //   });
+    // });
   }
 
   updateSelection(newRowIndex) {
@@ -222,15 +229,21 @@ class App {
       }
     } else if (event.key === "ArrowDown") {
       if (this.currentRowId < rows.length - 1) {
-        if (Math.abs(rows.length - 1 - this.currentRowId) < SCROLL_THRESHOLD_ROWS) {
+        if (
+          Math.abs(rows.length - 1 - this.currentRowId) < SCROLL_THRESHOLD_ROWS
+        ) {
           this.retrieveMoreRows();
         }
-        document.querySelectorAll(".row")[this.currentRowId].querySelector(".item-title").textContent = "";
+        document
+          .querySelectorAll(".row")
+          [this.currentRowId].querySelector(".item-title").textContent = "";
         this.updateSelection(this.currentRowId + 1);
       }
     } else if (event.key === "ArrowUp") {
       if (this.currentRowId > 0) {
-        document.querySelectorAll(".row")[this.currentRowId].querySelector(".item-title").textContent = "";
+        document
+          .querySelectorAll(".row")
+          [this.currentRowId].querySelector(".item-title").textContent = "";
         this.updateSelection(this.currentRowId - 1);
       }
     }
@@ -277,4 +290,3 @@ document.addEventListener("DOMContentLoaded", () => {
   const app = new App();
   app.init();
 });
-//main();
