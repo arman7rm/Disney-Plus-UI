@@ -1,6 +1,6 @@
 export const API_BASE_URL = "https://cd-static.bamgrid.com/dp-117731241344";
 export const HOME_API_PATH = "/home.json";
-export const SETS_API_PATH = "/sets/"; // Remember to append refId and .json
+export const SETS_API_PATH = "/sets/";
 export const IMAGE_RATIO_1_78 = "1.78";
 export const PREVIEW_VIDEO_DELAY_MS = 3000;
 export const ROW_FETCH_LIMIT = 2; // How many next rows to fetch when needed

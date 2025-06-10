@@ -9,7 +9,7 @@ import {
   SCROLL_THRESHOLD_ROWS,
   CSS_CLASSES,
   DATA_PATHS,
-} from "./config.js";
+} from "./constants.js";
 
 class App {
   static previewTimeout = null;
@@ -38,7 +38,6 @@ class App {
   async init() {
     this.addEventListeners();
     await this.initializeRowData();
-    console.log("row data", this.rowMap)
     this.renderQueuedRows();
     this.updateSelection(0); // Initialize selection to the first item of the first row
   }
@@ -63,7 +62,7 @@ class App {
         data.title = data.full[key]?.default?.content;
       }
     }
-    data.imageUrl = this.getImageUrl(data.title, item, "1.78");
+    data.imageUrl = this.getImageUrl(data.title, item, IMAGE_RATIO_1_78);
     data.contentId = item.contentId;
     data.videoArt = item.videoArt?.[0]?.mediaMetadata?.urls?.[0]?.url;
 
@@ -108,7 +107,6 @@ class App {
   }
 
   updateSelection(newRowIndex) {
-    console.log("updating");
     const rowObject = this.rowMap.get(newRowIndex);
     const oldSelected = document.querySelector(".tile.selected");
 
@@ -155,7 +153,7 @@ class App {
         video.classList.add("preview-video");
         wrapper.appendChild(video);
         App.currentVideo = video;
-      }, 3000);
+      }, PREVIEW_VIDEO_DELAY_MS);
     }
   }
 
@@ -190,7 +188,7 @@ class App {
 
       rowElement.appendChild(rowHeading);
       rowElement.appendChild(rowChildren);
-      document.querySelector(".grid-container").appendChild(rowElement);
+      this.gridContainer.appendChild(rowElement);
       this.renderedTitles.add(row.title);
     }
   }
@@ -200,8 +198,6 @@ class App {
    */
   addEventListeners() {
     document.addEventListener("keydown", this.handleKeyDown);
-    // Throttling scroll to prevent excessive function calls
-    //this.gridContainer.addEventListener("scroll", this.handleScroll);
   }
 
   handleKeyDown(event) {
@@ -226,7 +222,7 @@ class App {
       }
     } else if (event.key === "ArrowDown") {
       if (this.currentRowId < rows.length - 1) {
-        if (Math.abs(rows.length - this.currentRowId - 1) <= 2) {
+        if (Math.abs(rows.length - 1 - this.currentRowId) < SCROLL_THRESHOLD_ROWS) {
           this.retrieveMoreRows();
         }
         document.querySelectorAll(".row")[this.currentRowId].querySelector(".item-title").textContent = "";
@@ -242,10 +238,10 @@ class App {
 
   retrieveMoreRows() {
     let i = 0;
-    while (this.nextRowQueue.length > 0 && i < 2) {
+    while (this.nextRowQueue.length > 0 && i < ROW_FETCH_LIMIT) {
       i++;
       const refId = this.nextRowQueue.dequeue();
-      const baseUrl = `https://cd-static.bamgrid.com/dp-117731241344/sets/${refId}.json`;
+      const baseUrl = `${API_BASE_URL}${SETS_API_PATH}${refId}.json`;
 
       safeFetch(baseUrl)
         .then((responseJson) => {
