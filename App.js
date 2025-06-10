@@ -1,14 +1,9 @@
-import { createEl, safeFetch, getNestedProperty, Queue } from "./utils.js";
+import { createEl, Queue } from "./utils.js";
 import {
-  API_BASE_URL,
-  HOME_API_PATH,
-  SETS_API_PATH,
-  IMAGE_RATIO_1_78,
   PREVIEW_VIDEO_DELAY_MS,
   ROW_FETCH_LIMIT,
   SCROLL_THRESHOLD_ROWS,
   CSS_CLASSES,
-  DATA_PATHS,
 } from "./constants.js";
 import { dataService } from "./dataservice.js";
 
@@ -20,7 +15,7 @@ class App {
     this.nextRowQueue = new Queue(); // Stores refIds for rows to be fetched later
     this.renderQueue = new Queue(); // Stores rowIds that will be rendered when renderRows is invoked
     this.rowMap = new Map(); // Stores processed row data
-    this.renderedTitles = new Set(); // Stores titles of already rendered rows to prevent duplicates
+    this.renderedRows = []; // Stores titles of already rendered rows to prevent duplicates
     this.currentRowId = 0; // Currently selected row index
 
     // DOM Elements (cached for performance)
@@ -40,46 +35,6 @@ class App {
     this.updateSelection(0); // Initialize selection to the first item of the first row
   }
 
-  getImageUrl(title, data, size) {
-    const images = data?.image?.tile?.[size];
-    if (!images) {
-      console.warn(`${title} No Image found for size`, size);
-      return null;
-    }
-    return (
-      Object.values(images).find((img) => img?.default?.url)?.default?.url ??
-      null
-    );
-  }
-  getItemData(item) {
-    const data = {};
-
-    data.full = item?.text?.title?.full;
-    if (data.full) {
-      for (let key in data.full) {
-        data.title = data.full[key]?.default?.content;
-      }
-    }
-    data.imageUrl = this.getImageUrl(data.title, item, IMAGE_RATIO_1_78);
-    data.contentId = item.contentId;
-    data.videoArt = item.videoArt?.[0]?.mediaMetadata?.urls?.[0]?.url;
-
-    return data;
-  }
-
-  createRow(set) {
-    const row = {};
-    row.id = this.rowMap.size;
-    row.title = set?.text?.title?.full?.set?.default?.content;
-    row.tileIndex = 0;
-    row.children = [];
-
-    set.items.forEach((item) => {
-      row.children.push(this.getItemData(item));
-    });
-    return row;
-  }
-
   async initializeRowData() {
     const { initialRows, nextRowRefIds } = await dataService.fetchInitialRows();
     initialRows.forEach((row) => {
@@ -89,32 +44,11 @@ class App {
     nextRowRefIds.forEach((refId) => {
       this.nextRowQueue.enqueue(refId);
     });
-    // return safeFetch(API_BASE_URL + HOME_API_PATH).then((response) => {
-    //   const containers = response?.data?.StandardCollection?.containers;
-
-    //   if (!containers) {
-    //     console.error(
-    //       "Error: Data could not be parsed. Invalid response structure."
-    //     );
-
-    //     return;
-    //   }
-
-    //   containers.forEach((container) => {
-    //     if (container.set?.items) {
-    //       const row = this.createRow(container.set);
-    //       console.log(row.id);
-    //       this.rowMap.set(row.id, row);
-    //       this.renderQueue.enqueue(row.id);
-    //     } else {
-    //       this.nextRowQueue.enqueue(container?.set?.refId);
-    //     }
-    //   });
-    // });
   }
 
   updateSelection(newRowIndex) {
-    const rowObject = this.rowMap.get(newRowIndex);
+    if (!this.rowMap.has(this.renderedRows[newRowIndex].id)) return;
+    const rowObject = this.rowMap.get(this.renderedRows[newRowIndex].id);
     const oldSelected = document.querySelector(".tile.selected");
 
     // Remove old video if exists
@@ -176,7 +110,6 @@ class App {
       rowHeading.appendChild(itemTitle);
 
       const rowChildren = createEl("div", "row-children");
-
       row.children.forEach((item) => {
         const img = createEl("img");
         img.src = item.imageUrl;
@@ -196,13 +129,10 @@ class App {
       rowElement.appendChild(rowHeading);
       rowElement.appendChild(rowChildren);
       this.gridContainer.appendChild(rowElement);
-      this.renderedTitles.add(row.title);
+      this.renderedRows.push({ title: row.title, id: row.id });
     }
   }
 
-  /**
-   * Adds all necessary event listeners.
-   */
   addEventListeners() {
     document.addEventListener("keydown", this.handleKeyDown);
   }
@@ -210,7 +140,7 @@ class App {
   handleKeyDown(event) {
     const rows = document.querySelectorAll(".row-children");
     const currentRowElement = rows[this.currentRowId];
-    const currentRow = this.rowMap.get(this.currentRowId);
+    const currentRow = this.rowMap.get(this.renderedRows[this.currentRowId].id);
     if (!currentRowElement) return;
 
     const tiles = currentRowElement.querySelectorAll(".tile");
@@ -249,38 +179,21 @@ class App {
     }
   }
 
-  retrieveMoreRows() {
-    let i = 0;
-    while (this.nextRowQueue.length > 0 && i < ROW_FETCH_LIMIT) {
-      i++;
+  async retrieveMoreRows() {
+    let numOfRows = 0;
+    while (this.nextRowQueue.length > 0 && numOfRows < ROW_FETCH_LIMIT) {
+      numOfRows++;
       const refId = this.nextRowQueue.dequeue();
-      const baseUrl = `${API_BASE_URL}${SETS_API_PATH}${refId}.json`;
+      const row = await dataService.fetchRowbyRefId(refId);
 
-      safeFetch(baseUrl)
-        .then((responseJson) => {
-          let data = responseJson?.data;
-          var row;
-          if (data.CuratedSet) {
-            row = this.createRow(data.CuratedSet);
-          } else if (data.TrendingSet) {
-            row = this.createRow(data.TrendingSet);
-          } else if (data.PersonalizedCuratedSet) {
-            row = this.createRow(data.PersonalizedCuratedSet);
-          }
+      if (row && !this.renderedRows.some((r) => r.title === row.title)) {
+        this.rowMap.set(row.id, row);
+        this.renderQueue.enqueue(row.id);
+      } else {
+        console.warn(`Duplicate row recieved: \nrefId: ${refId}`);
+      }
 
-          if (!this.renderedTitles.has(row.title)) {
-            this.rowMap.set(row.id, row);
-            this.renderQueue.enqueue(row.id);
-          } else {
-            console.warn(
-              `Duplicate row recieved: \nrefId: ${refId}\nTitle: ${row.title}`
-            );
-          }
-        })
-
-        .then(() => {
-          this.renderQueuedRows();
-        });
+      this.renderQueuedRows();
     }
   }
 }

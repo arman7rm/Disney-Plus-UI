@@ -41,16 +41,13 @@ class DataService {
 
     const initialRows = [];
     const nextRowRefIds = [];
-    containers.forEach((container, index) => {
+    containers.forEach((container) => {
       if (container.set?.items) {
-        const row = this.createRow(container.set, index);
+        const row = this.createRow(container.set);
         if (row && row.children.length > 0) {
           initialRows.push(row);
         } else {
-          console.warn(
-            "DataService: Container missing items",
-            container
-          );
+          console.warn("DataService: Container missing items", container);
         }
       } else {
         const refId = container.set.refId;
@@ -64,7 +61,7 @@ class DataService {
         }
       }
     });
-    
+
     return { initialRows, nextRowRefIds };
   }
 
@@ -94,14 +91,33 @@ class DataService {
 
     return data;
   }
-  createRow(set, index) {
+  createRow(set) {
     const title = set?.text?.title?.full?.set?.default?.content;
-    const row = new RowModel(index, title);
+    const row = new RowModel(title);
 
     set.items.forEach((item) => {
       row.children.push(this.getItemData(item));
     });
     return row;
+  }
+
+  async fetchRowbyRefId(refId) {
+    const baseUrl = `${API_BASE_URL}${SETS_API_PATH}${refId}.json`;
+    const response = await safeFetch(baseUrl);
+    const data = response?.data;
+    let row;
+    if (data.CuratedSet) {
+      row = this.createRow(data.CuratedSet);
+    } else if (data.TrendingSet) {
+      row = this.createRow(data.TrendingSet);
+    } else if (data.PersonalizedCuratedSet) {
+      row = this.createRow(data.PersonalizedCuratedSet);
+    }
+    if (row) {
+      return row;
+    } else {
+      console.warn(`Row not found: \nrefId: ${refId}`);
+    }
   }
 }
 

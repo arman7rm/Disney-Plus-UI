@@ -1,16 +1,18 @@
 export class RowModel {
-  constructor(id, title) {
-    this.id = id;
+  static nextId = 0;
+
+  constructor(title) {
+    this.id = RowModel.nextId++;
     this.title = title;
     this.children = [];
     this.tileIndex = 0;
   }
 }
 
-export class Tile{
-    constructor(title, imageUrl, videoUrl){
-        this.title = title;
-        this.imageUrl = imageUrl;
-        this.videoUrl = videoUrl;
-    }
+export class Tile {
+  constructor(title, imageUrl, videoUrl) {
+    this.title = title;
+    this.imageUrl = imageUrl;
+    this.videoUrl = videoUrl;
+  }
 }
