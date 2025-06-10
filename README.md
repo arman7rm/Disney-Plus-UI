@@ -34,18 +34,6 @@ This project is a simplified Disney Plus UI, built with vanilla HTML, CSS, and J
 
 ---
 
-## Project Structure
-
-├── index.html            // Main HTML file
-├── style.css             // All project-specific CSS
-├── App.js                // Main application logic and state management
-├── constants.js          // Global constants and configuration
-├── dataservice.js        // Handles API calls and data transformation
-├── models.js             // Defines data structures (RowModel, Tile)
-└── utils.js              // Utility functions (DOM creation, safeFetch, Queue)
-
----
-
 ## Future Enhancements
 
 * **Responsiveness:** Optimize layout for mobile devices.
