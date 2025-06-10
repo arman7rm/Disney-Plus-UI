@@ -46,7 +46,7 @@ class App {
     });
   }
 
-  updateSelection(rowIndex, newRow) {
+  updateSelection(rowIndex) {
     if (!this.rowMap.has(this.renderedRows[rowIndex].id)) return;
     const rowObject = this.rowMap.get(this.renderedRows[rowIndex].id);
     const oldSelected = document.querySelector(".tile.selected");
@@ -107,17 +107,23 @@ class App {
       const rowElement = createEl("div", "row");
       const rowHeading = createEl("div", "row-heading");
       const rowTitle = createEl("h2", ["row-title"], row.title);
-      const itemTitle = createEl("h2", ["item-title"]);
+      const itemTitle = createEl("span", ["item-title"]);
 
       rowHeading.appendChild(rowTitle);
       rowHeading.appendChild(itemTitle);
 
       const rowChildren = createEl("div", "row-children");
+      rowChildren.setAttribute("role", "list");
+      rowChildren.setAttribute("aria-label", `Row: ${row.title}`);
+
       row.children.forEach((item) => {
         const img = createEl("img");
         img.src = item.imageUrl;
         img.classList.add("tile");
         img.alt = item.title;
+        img.setAttribute("role", "listitem");
+        img.setAttribute("tabindex", "-1");
+        img.setAttribute("aria-label", item.title);
         img.videoUrl = item.videoArt;
 
         const tileWrapper = createEl("div", "tile-wrapper");
@@ -152,13 +158,13 @@ class App {
       if (currentRow.tileIndex < tiles.length - 1) {
         currentRow.tileIndex++;
 
-        this.updateSelection(this.currentRowId, false);
+        this.updateSelection(this.currentRowId);
       }
     } else if (event.key === "ArrowLeft") {
       if (currentRow.tileIndex > 0) {
         currentRow.tileIndex--;
 
-        this.updateSelection(this.currentRowId, false);
+        this.updateSelection(this.currentRowId);
       }
     } else if (event.key === "ArrowDown") {
       if (this.currentRowId < rows.length - 1) {
@@ -170,14 +176,14 @@ class App {
         document
           .querySelectorAll(".row")
           [this.currentRowId].querySelector(".item-title").textContent = "";
-        this.updateSelection(this.currentRowId + 1, true);
+        this.updateSelection(this.currentRowId + 1);
       }
     } else if (event.key === "ArrowUp") {
       if (this.currentRowId > 0) {
         document
           .querySelectorAll(".row")
           [this.currentRowId].querySelector(".item-title").textContent = "";
-        this.updateSelection(this.currentRowId - 1, true);
+        this.updateSelection(this.currentRowId - 1);
       }
     }
   }
