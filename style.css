@@ -85,9 +85,23 @@
   }
   
   .selected {
-    border: 2px solid white;
-    transform: scale(1.15);
+    border: 4px solid white;
+    transform: scale(1.25);
     z-index: 1;
     margin: 0 4rem;
+  }
+  
+  .tile-wrapper {
+    position: relative;
+  }
+  .preview-video {
+    width: 375px;
+    height: 210px;
+    position: absolute;
+    top: 49%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    z-index: 2;
   }
   
