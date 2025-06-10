@@ -21,7 +21,7 @@ This project is a simplified Disney Plus UI, built with vanilla HTML, CSS, and J
     cd Disney-Plus-UI
 
     ```
-2.  **Open `index.html`
+2.  **Open `index.html` Important: Open with Live Server
 ---
 
 ## Usage
