@@ -1,4 +1,3 @@
-// dataService.js
 import { safeFetch, getNestedProperty } from "./utils.js";
 import {
   API_BASE_URL,
@@ -15,10 +14,15 @@ import { RowModel, Tile } from "./models.js";
  */
 class DataService {
   constructor() {
+    /**
+     * Base URL for API requests.
+     * @type {string}
+     */
     this.baseUrl = API_BASE_URL;
   }
+
   /**
-   * Fetches and parses the initial home screen data.
+   * Fetches and processes the initial home screen rows.
    * @returns {Promise<{initialRows: Array<RowModel>, nextRowRefIds: Array<string>}>}
    */
   async fetchInitialRows() {
@@ -41,6 +45,7 @@ class DataService {
 
     const initialRows = [];
     const nextRowRefIds = [];
+
     containers.forEach((container) => {
       if (container.set?.items) {
         const row = this.createRow(container.set);
@@ -65,17 +70,31 @@ class DataService {
     return { initialRows, nextRowRefIds };
   }
 
+  /**
+   * Retrieves the appropriate image URL for an item based on its size.
+   * @param {string} title 
+   * @param {Object} data 
+   * @param {string} size 
+   * @returns {string|null} 
+   */
   getImageUrl(title, data, size) {
     const images = data?.image?.tile?.[size];
     if (!images) {
       console.warn(`${title} No Image found for size`, size);
       return null;
     }
+
     return (
       Object.values(images).find((img) => img?.default?.url)?.default?.url ??
       null
     );
   }
+
+  /**
+   * Extracts relevant information from a content item to be displayed as a tile.
+   * @param {Object} item - The content item.
+   * @returns {Tile} 
+   */
   getItemData(item) {
     const data = {};
 
@@ -85,26 +104,40 @@ class DataService {
         data.title = data.full[key]?.default?.content;
       }
     }
+
     data.imageUrl = this.getImageUrl(data.title, item, IMAGE_RATIO_1_78);
     data.contentId = item.contentId;
     data.videoArt = item.videoArt?.[0]?.mediaMetadata?.urls?.[0]?.url;
 
     return data;
   }
+
+  /**
+   * Creates a RowModel instance and populates it with tile data.
+   * @param {Object} set - The data set containing title and items.
+   * @returns {RowModel} - The constructed RowModel with its children.
+   */
   createRow(set) {
-    const title = set?.text?.title?.full?.set?.default?.content;
+    const title = getNestedProperty(set, DATA_PATHS.SET_TITLE_FULL);
     const row = new RowModel(title);
 
     set.items.forEach((item) => {
       row.children.push(this.getItemData(item));
     });
+
     return row;
   }
 
+  /**
+   * Fetches and constructs a row based on a reference ID.
+   * @param {string} refId - The reference ID to fetch data from.
+   * @returns {Promise<RowModel | undefined>} - The row if found, otherwise undefined.
+   */
   async fetchRowbyRefId(refId) {
     const baseUrl = `${API_BASE_URL}${SETS_API_PATH}${refId}.json`;
     const response = await safeFetch(baseUrl);
     const data = response?.data;
+
     let row;
     if (data.CuratedSet) {
       row = this.createRow(data.CuratedSet);
@@ -113,6 +146,7 @@ class DataService {
     } else if (data.PersonalizedCuratedSet) {
       row = this.createRow(data.PersonalizedCuratedSet);
     }
+
     if (row) {
       return row;
     } else {
@@ -121,4 +155,8 @@ class DataService {
   }
 }
 
+/**
+ * Singleton instance of DataService for shared use across the app.
+ * @type {DataService}
+ */
 export const dataService = new DataService();

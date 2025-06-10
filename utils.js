@@ -1,3 +1,10 @@
+/**
+ * Creates a DOM element with optional class and text content.
+ * @param {string} tag - The tag name of the element.
+ * @param {string|string[]} [className] - A class name or array of class names.
+ * @param {string} [text] - Optional text content.
+ * @returns {HTMLElement} - The created DOM element.
+ */
 export function createEl(tag, className, text) {
   const el = document.createElement(tag);
   if (className) {
@@ -34,10 +41,10 @@ export async function safeFetch(url) {
  * Safely accesses a nested property in an object.
  * @param {Object} obj - The object to traverse.
  * @param {string} path - The path to the property (e.g., "data.StandardCollection.containers").
- * @param {*} defaultValue - The value to return if the path is not found.
+ * @param {*} [defaultValue=undefined] - The value to return if the path is not found.
  * @returns {*} - The value of the nested property or the defaultValue.
  */
-export function getNestedProperty(obj, path, defaultValue = undefined) {
+export function getNestedProperty(obj, path, defaultValue = null) {
   const parts = path.split(".");
   let current = obj;
   for (let i = 0; i < parts.length; i++) {
@@ -45,8 +52,9 @@ export function getNestedProperty(obj, path, defaultValue = undefined) {
     if (
       current === null ||
       typeof current !== "object" ||
-      !current.hasOwnProperty(part)
+      !Object.prototype.hasOwnProperty.call(current, part)
     ) {
+        console.log(current, part);
       return defaultValue;
     }
     current = current[part];
@@ -54,6 +62,9 @@ export function getNestedProperty(obj, path, defaultValue = undefined) {
   return current;
 }
 
+/**
+ * A simple Queue class.
+ */
 export class Queue {
   constructor() {
     this.items = [];

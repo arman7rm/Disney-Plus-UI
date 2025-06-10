@@ -1,3 +1,6 @@
+/**
+ * API endpoints and related constants.
+ */
 export const API_BASE_URL = "https://cd-static.bamgrid.com/dp-117731241344";
 export const HOME_API_PATH = "/home.json";
 export const SETS_API_PATH = "/sets/";
@@ -6,6 +9,9 @@ export const PREVIEW_VIDEO_DELAY_MS = 3000;
 export const ROW_FETCH_LIMIT = 2; // How many next rows to fetch when needed
 export const SCROLL_THRESHOLD_ROWS = 3; // How many rows from end to trigger fetch
 
+/**
+ * CSS class name mappings used throughout the UI.
+ */
 export const CSS_CLASSES = {
   ROW: "row",
   ROW_HEADING: "row-heading",
@@ -19,16 +25,10 @@ export const CSS_CLASSES = {
   GRID_CONTAINER: "grid-container",
 };
 
+/**
+ * Common data paths used for safe object traversal.
+ */
 export const DATA_PATHS = {
   CONTAINERS: "data.StandardCollection.containers",
-  SET_ITEMS: "set.items",
-  SET_REF_ID: "set.refId",
-  ITEM_TITLE_FULL: "text.title.full",
-  ITEM_IMAGE_TILE: "image.tile",
-  ITEM_VIDEO_ART: "videoArt[0].mediaMetadata.urls[0].url",
-  ITEM_CONTENT_ID: "contentId",
-  SET_TITLE_FULL: "text.title.full.set.default.content",
-  CURATED_SET: "data.CuratedSet",
-  TRENDING_SET: "data.TrendingSet",
-  PERSONALIZED_CURATED_SET: "data.PersonalizedCuratedSet",
+  SET_TITLE_FULL: "text.title.full.set.default.content"
 };
