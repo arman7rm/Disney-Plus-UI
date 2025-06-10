@@ -32,7 +32,7 @@ class App {
     this.addEventListeners();
     await this.initializeRowData();
     this.renderQueuedRows();
-    this.updateSelection(0); // Initialize selection to the first item of the first row
+    this.updateSelection(0, true); // Initialize selection to the first item of the first row
   }
 
   async initializeRowData() {
@@ -46,9 +46,9 @@ class App {
     });
   }
 
-  updateSelection(newRowIndex) {
-    if (!this.rowMap.has(this.renderedRows[newRowIndex].id)) return;
-    const rowObject = this.rowMap.get(this.renderedRows[newRowIndex].id);
+  updateSelection(rowIndex, newRow) {
+    if (!this.rowMap.has(this.renderedRows[rowIndex].id)) return;
+    const rowObject = this.rowMap.get(this.renderedRows[rowIndex].id);
     const oldSelected = document.querySelector(".tile.selected");
 
     // Remove old video if exists
@@ -63,7 +63,7 @@ class App {
     }
 
     const rowElements = document.querySelectorAll(".row");
-    const row = rowElements[newRowIndex];
+    const row = rowElements[rowIndex];
 
     if (!row) return;
 
@@ -74,12 +74,15 @@ class App {
     if (newTile) {
       newTile.classList.add("selected");
       newTile.scrollIntoView({ behavior: "smooth", inline: "center" });
+
       const rowTitle = row.querySelector(".row-title");
-      if (rowTitle) rowTitle.scrollIntoView({ behavior: "smooth" });
-      if (newRowIndex === 0) {
+      if (rowTitle) {
+        rowTitle.scrollIntoView({ behavior: "smooth" });
+      }
+      if (rowIndex === 0) {
         document.documentElement.scrollTo({ top: 0, behavior: "smooth" });
       }
-      this.currentRowId = newRowIndex;
+      this.currentRowId = rowIndex;
       const selectedTile = document.querySelector(".tile.selected");
       const title = selectedTile ? selectedTile.alt : null;
       row.querySelector(".item-title").textContent = ": " + title;
@@ -149,13 +152,13 @@ class App {
       if (currentRow.tileIndex < tiles.length - 1) {
         currentRow.tileIndex++;
 
-        this.updateSelection(this.currentRowId);
+        this.updateSelection(this.currentRowId, false);
       }
     } else if (event.key === "ArrowLeft") {
       if (currentRow.tileIndex > 0) {
         currentRow.tileIndex--;
 
-        this.updateSelection(this.currentRowId);
+        this.updateSelection(this.currentRowId, false);
       }
     } else if (event.key === "ArrowDown") {
       if (this.currentRowId < rows.length - 1) {
@@ -167,14 +170,14 @@ class App {
         document
           .querySelectorAll(".row")
           [this.currentRowId].querySelector(".item-title").textContent = "";
-        this.updateSelection(this.currentRowId + 1);
+        this.updateSelection(this.currentRowId + 1, true);
       }
     } else if (event.key === "ArrowUp") {
       if (this.currentRowId > 0) {
         document
           .querySelectorAll(".row")
           [this.currentRowId].querySelector(".item-title").textContent = "";
-        this.updateSelection(this.currentRowId - 1);
+        this.updateSelection(this.currentRowId - 1, true);
       }
     }
   }
