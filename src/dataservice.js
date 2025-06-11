@@ -43,6 +43,15 @@ class DataService {
       return { initialRows: [], nextRowRefIds: [] };
     }
 
+    return this.processContainerData(containers);
+  }
+
+  /**
+   * Retrieves the appropriate image URL for an item based on its size.
+   * @param {JSON} containers
+   * @returns {Promise<{initialRows: Array<RowModel>, nextRowRefIds: Array<string>}>}
+   */
+  processContainerData(containers) {
     const initialRows = [];
     const nextRowRefIds = [];
 
