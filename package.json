@@ -1,0 +1,25 @@
+{
+  "name": "disney-plus-ui",
+  "version": "1.0.0",
+  "description": "This project is a simplified Disney Plus UI, built with vanilla HTML, CSS, and JavaScript. It demonstrates dynamic content loading, and keyboard navigation.",
+  "main": "App.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arman7rm/Disney-Plus-UI.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/arman7rm/Disney-Plus-UI/issues"
+  },
+  "homepage": "https://github.com/arman7rm/Disney-Plus-UI#readme",
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}

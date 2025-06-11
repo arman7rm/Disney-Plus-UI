@@ -22,6 +22,7 @@ This project is a simplified Disney Plus UI, built with vanilla HTML, CSS, and J
 
     ```
 2.  **Open `index.html` Important: Open with Live Server
+    Alternativelively run with vite: run: npm run dev
 ---
 
 ## Usage
